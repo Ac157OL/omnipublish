@@ -1,0 +1,26 @@
+{
+  "name": "@omnipublish/content-core",
+  "version": "1.0.0",
+  "description": "Markdown AST Pipeline and Utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "mdast-util-to-string": "^4.0.0",
+    "rehype-stringify": "^10.0.1",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-rehype": "^11.1.2",
+    "remark-stringify": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/mdast": "^4.0.4",
+    "typescript": "^5.0.0",
+    "vitest": "^3.1.1"
+  }
+}

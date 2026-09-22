@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* 强制全局使用夜空暖灯主题，忽略系统的明暗设置 */
+  :root, .dark {
+    /* 极致深邃的夜空蓝/紫 */
+    --background: 235 45% 10%;
+    --foreground: 0 0% 100%; /* 纯白文字 */
+
+    /* 半透明暗紫/蓝卡片 */
+    --card: 245 40% 16%;
+    --card-foreground: 0 0% 100%;
+    --popover: 245 40% 16%;
+    --popover-foreground: 0 0% 100%;
+
+    /* 暖灯/明月的金橙色作为强调色 */
+    --primary: 38 95% 55%;
+    --primary-foreground: 230 45% 10%;
+
+    /* 略亮的紫罗兰色作为次要底色 */
+    --secondary: 265 40% 25%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 245 30% 25%;
+    --muted-foreground: 0 0% 80%; /* 略暗的白色 */
+
+    --accent: 38 95% 55%;
+    --accent-foreground: 230 45% 10%;
+
+    --destructive: 350 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* 非常柔和的紫/蓝边框，模拟玻璃的边缘反光 */
+    --border: 265 30% 35%;
+    --input: 265 30% 35%;
+    --ring: 38 95% 55%;
+
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-color: hsl(var(--background));
+    /* 使用指定的图片作为全局背景 */
+    background-image: url('/bg-nocturnal.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  /* 针对 CodeMirror 编辑器的极端强制样式，确保白底黑字 */
+  .cm-editor,
+  .cm-editor *,
+  .cm-editor .cm-content,
+  .cm-editor .cm-line,
+  .cm-editor .cm-activeLine {
+    color: #0f172a !important; /* 强制黑色/深石板色文字 */
+  }
+
+  ::selection {
+    background-color: hsl(var(--primary) / 0.2);
+    color: hsl(var(--primary));
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* 暗夜毛玻璃面板 */
+  .glass-panel {
+    background-color: hsl(var(--card) / 0.4);
+    @apply backdrop-blur-xl border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.2)];
+  }
+
+  /* 现代风格的平滑过渡 */
+  .smooth-transition {
+    @apply transition-all duration-300;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* 隐藏滚动条但保留功能 */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

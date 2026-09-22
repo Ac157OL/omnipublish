@@ -1,0 +1,32 @@
+{
+  "name": "omnipublish",
+  "version": "1.0.0",
+  "description": "A self-hosted workspace for drafting and publishing content across multiple platforms.",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm tsx scripts/dev.ts",
+    "dev:raw": "pnpm --parallel --filter web --filter worker run dev",
+    "dev:turbo": "pnpm --parallel --filter web --filter worker run dev",
+    "build:packages": "pnpm -r --filter './packages/**' run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm build:packages && pnpm -r exec tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/localtunnel": "^2.0.4",
+    "@vitest/coverage-v8": "^3.1.1",
+    "dotenv": "^16.6.1",
+    "localtunnel": "^2.0.2",
+    "tsx": "^4.23.1",
+    "vitest": "^3.1.1"
+  },
+  "keywords": ["content-publishing", "nextjs", "playwright", "monorepo"],
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "dependencies": {
+    "playwright": "^1.62.0"
+  }
+}

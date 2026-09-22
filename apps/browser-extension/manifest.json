@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "OmniPublish 浏览器辅助发布",
+  "version": "1.0.0",
+  "description": "多平台投稿发布系统 - 浏览器辅助发布扩展",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://juejin.cn/*",
+    "http://localhost:8080/*",
+    "http://127.0.0.1:8080/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://juejin.cn/editor/drafts/*", "*://juejin.cn/creator/content/article/draft*"],
+      "js": ["content/juejin.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup/index.html"
+  }
+}

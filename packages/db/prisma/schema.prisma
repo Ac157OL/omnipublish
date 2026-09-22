@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// users
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  name      String
+  password  String?  // Added for credential login
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  documents        Document[]
+  assets           Asset[]
+  platformAccounts PlatformAccount[]
+
+  @@map("users")
+}
+
+// documents
+enum DocumentStatus {
+  draft
+  ready
+  partial
+  published
+  archived
+}
+
+model Document {
+  id          String         @id @default(uuid()) @db.Uuid
+  userId      String         @map("user_id") @db.Uuid
+  title       String
+  markdown    String         @db.Text
+  coverImageUrl String?      @map("cover_image_url") @db.Text
+  frontMatter Json?          @map("front_matter") @db.JsonB
+  status      DocumentStatus @default(draft)
+  contentHash String         @map("content_hash") @db.Char(64)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime?      @map("deleted_at") @db.Timestamptz
+
+  user           User              @relation(fields: [userId], references: [id])
+  versions       DocumentVersion[]
+  variants       PlatformVariant[]
+  publishBatches PublishBatch[]
+  aiGenerations  AIGeneration[]
+
+  @@index([userId, updatedAt(sort: Desc)])
+  @@index([userId, status])
+  @@map("documents")
+}
+
+// document_versions
+enum VersionSource {
+  auto
+  manual
+  import
+  publish
+}
+
+model DocumentVersion {
+  id          String        @id @default(uuid()) @db.Uuid
+  documentId  String        @map("document_id") @db.Uuid
+  versionNo   Int           @map("version_no")
+  markdown    String        @db.Text
+  contentHash String        @map("content_hash") @db.Char(64)
+  label       String?
+  source      VersionSource
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  document       Document          @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  variants       PlatformVariant[]
+  publishBatches PublishBatch[]
+
+  @@map("document_versions")
+}
+
+// platform_variants
+enum PlatformCode {
+  wechat
+  cnblogs
+  juejin
+  xiaohongshu
+  csdn
+  zhihu
+}
+
+enum BodyFormat {
+  markdown
+  html
+  richtext
+  card
+}
+
+model PlatformVariant {
+  id              String       @id @default(uuid()) @db.Uuid
+  documentId      String       @map("document_id") @db.Uuid
+  platform        PlatformCode
+  sourceVersionId String       @map("source_version_id") @db.Uuid
+  title           String
+  summary         String?      @db.Text
+  body            String?      @db.Text
+  bodyFormat      BodyFormat   @map("body_format")
+  tags            Json?        @db.JsonB
+  platformFields  Json?        @map("platform_fields") @db.JsonB
+  lockedFields    Json?        @map("locked_fields") @db.JsonB
+  ruleVersion     String?      @map("rule_version")
+  aiPromptVersion String?      @map("ai_prompt_version")
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  document      Document        @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  sourceVersion DocumentVersion @relation(fields: [sourceVersionId], references: [id])
+
+  @@unique([documentId, platform])
+  @@map("platform_variants")
+}
+
+// assets
+enum AssetKind {
+  image
+  video
+  file
+}
+
+enum AssetSource {
+  upload
+  paste
+  remote
+  ai
+}
+
+model Asset {
+  id           String      @id @default(uuid()) @db.Uuid
+  userId       String      @map("user_id") @db.Uuid
+  kind         AssetKind
+  source       AssetSource
+  originalName String      @map("original_name")
+  mimeType     String      @map("mime_type")
+  byteSize     BigInt      @map("byte_size")
+  width        Int?
+  height       Int?
+  sha256       String      @db.Char(64)
+  storageKey   String      @map("storage_key")
+  publicUrl    String      @map("public_url") @db.Text
+  metadata     Json?       @db.JsonB
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  user           User            @relation(fields: [userId], references: [id])
+  platformAssets PlatformAsset[]
+
+  @@unique([userId, sha256])
+  @@map("assets")
+}
+
+model PlatformAsset {
+  id                String   @id @default(uuid()) @db.Uuid
+  platformAccountId String   @map("platform_account_id") @db.Uuid
+  assetId           String   @map("asset_id") @db.Uuid
+  remoteId          String   @map("remote_id")
+  remoteUrl         String?  @map("remote_url") @db.Text
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  platformAccount PlatformAccount @relation(fields: [platformAccountId], references: [id])
+  asset           Asset           @relation(fields: [assetId], references: [id])
+
+  @@unique([platformAccountId, assetId])
+  @@map("platform_assets")
+}
+
+// platform_accounts
+enum AuthType {
+  oauth
+  app_secret
+  browser
+  manual
+}
+
+enum AccountStatus {
+  active
+  binding
+  expired
+  revoked
+  error
+}
+
+model PlatformAccount {
+  id                   String        @id @default(uuid()) @db.Uuid
+  userId               String        @map("user_id") @db.Uuid
+  platform             PlatformCode
+  displayName          String        @map("display_name")
+  authType             AuthType      @map("auth_type")
+  encryptedCredentials String        @map("encrypted_credentials") @db.Text
+  scopes               Json?         @db.JsonB
+  status               AccountStatus
+  expiresAt            DateTime?     @map("expires_at") @db.Timestamptz
+  createdAt            DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  user           User            @relation(fields: [userId], references: [id])
+  publishJobs    PublishJob[]
+  platformAssets PlatformAsset[]
+
+  @@map("platform_accounts")
+}
+
+// publish_batches
+enum BatchStatus {
+  queued
+  running
+  partial
+  success
+  failed
+  cancelled
+}
+
+model PublishBatch {
+  id              String      @id @default(uuid()) @db.Uuid
+  documentId      String      @map("document_id") @db.Uuid
+  sourceVersionId String      @map("source_version_id") @db.Uuid
+  status          BatchStatus
+  scheduledAt     DateTime?   @map("scheduled_at") @db.Timestamptz
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  finishedAt      DateTime?   @map("finished_at") @db.Timestamptz
+
+  document      Document        @relation(fields: [documentId], references: [id])
+  sourceVersion DocumentVersion @relation(fields: [sourceVersionId], references: [id])
+  jobs          PublishJob[]
+
+  @@map("publish_batches")
+}
+
+// publish_jobs
+enum PublishMode {
+  api
+  browser
+  export
+}
+
+enum JobStatus {
+  queued
+  preparing
+  uploading_assets
+  submitting
+  awaiting_user
+  submitted
+  reviewing
+  published
+  retrying
+  failed
+  rejected
+  cancelled
+}
+
+model PublishJob {
+  id                String      @id @default(uuid()) @db.Uuid
+  batchId           String      @map("batch_id") @db.Uuid
+  platformAccountId String      @map("platform_account_id") @db.Uuid
+  variantSnapshot   Json        @map("variant_snapshot") @db.JsonB
+  mode              PublishMode
+  status            JobStatus
+  idempotencyKey    String      @unique @map("idempotency_key")
+  remoteId          String?     @map("remote_id")
+  remoteUrl         String?     @map("remote_url") @db.Text
+  attemptCount      Int         @default(0) @map("attempt_count")
+  errorCode         String?     @map("error_code")
+  errorMessage      String?     @map("error_message") @db.Text
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  finishedAt        DateTime?   @map("finished_at") @db.Timestamptz
+
+  batch           PublishBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  platformAccount PlatformAccount  @relation(fields: [platformAccountId], references: [id])
+  metricSnapshots MetricSnapshot[]
+
+  @@index([status, createdAt])
+  @@map("publish_jobs")
+}
+
+model MetricSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  publishJobId String   @map("publish_job_id") @db.Uuid
+  views        Int      @default(0)
+  likes        Int      @default(0)
+  comments     Int      @default(0)
+  shares       Int      @default(0)
+  capturedAt   DateTime @default(now()) @map("captured_at") @db.Timestamptz
+
+  publishJob PublishJob @relation(fields: [publishJobId], references: [id], onDelete: Cascade)
+
+  @@index([publishJobId, capturedAt(sort: Desc)])
+  @@map("metric_snapshots")
+}
+
+// ai_generations
+enum AIProvider {
+  deepseek
+  minimax
+}
+
+enum AITaskType {
+  title
+  summary
+  tags
+  adapt
+  storyboard
+  image
+}
+
+enum AIGenStatus {
+  pending
+  success
+  failed
+}
+
+model AIGeneration {
+  id            String      @id @default(uuid()) @db.Uuid
+  documentId    String      @map("document_id") @db.Uuid
+  provider      AIProvider
+  model         String
+  taskType      AITaskType  @map("task_type")
+  promptVersion String      @map("prompt_version")
+  inputHash     String      @map("input_hash") @db.Char(64)
+  requestMeta   Json?       @map("request_meta") @db.JsonB
+  output        Json?       @db.JsonB
+  usage         Json?       @db.JsonB
+  status        AIGenStatus
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([inputHash, taskType, model])
+  @@map("ai_generations")
+}
